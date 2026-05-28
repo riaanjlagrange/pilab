@@ -1,0 +1,288 @@
+networks:
+  homelab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+services:
+  plex:
+    image: plexinc/pms-docker
+    container_name: plex
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - PLEX_UID=1000
+      - PLEX_GID=1000
+      - TZ=${TZ}
+      - PLEX_CLAIM=
+    volumes:
+      - ./services/plex/config:/config
+      - ./services/plex/transcode:/transcode
+      - ./media/movies:/data/movies
+      - ./media/series:/data/series
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    networks:
+      - homelab
+    restart: unless-stopped
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 8888:80
+    environment:
+      - TZ=${TZ}
+      - WEBPASSWORD=${PIHOLE_PASSWORD}
+    volumes:
+      - ./services/pihole/etc-pihole:/etc/pihole
+      - ./services/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    cap_add:
+      - NET_ADMIN
+
+  radarr:
+    image: lscr.io/linuxserver/radarr
+    container_name: radarr
+    networks:
+      - homelab
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    ports:
+      - 7878:7878
+    volumes:
+      - ./services/radarr/config:/config
+      - ./media:/media
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr
+    container_name: sonarr
+    networks:
+      - homelab
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    ports:
+      - 8989:8989
+    volumes:
+      - ./services/sonarr/config:/config
+      - ./media:/media
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr
+    container_name: prowlarr
+    networks:
+      - homelab
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    ports:
+      - 9696:9696
+    volumes:
+      - ./services/prowlarr/config:/config
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    networks:
+      - homelab
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    ports:
+      - 5055:5055
+    volumes:
+      - ./services/seerr/config:/app/config
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent
+    container_name: qbittorrent
+    networks:
+      - homelab
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    volumes:
+      - ./services/qbittorrent/config:/config
+      - ./media:/downloads
+
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    networks:
+      - homelab
+    restart: unless-stopped
+    ports:
+      - 8181:80
+    volumes:
+      - ./media:/srv/media
+      - ./shared:/srv/files
+      - ./services/filebrowser/database.db:/database.db
+
+  glances:
+    image: nicolargo/glances
+    container_name: glances
+    networks:
+      - homelab
+    restart: unless-stopped
+    pid: host
+    environment:
+      - GLANCES_OPT=-w
+    ports:
+      - 61208:61208
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  dozzle:
+    image: amir20/dozzle
+    container_name: dozzle
+    networks:
+      - homelab
+    restart: unless-stopped
+    ports:
+      - 9999:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  wetty:
+    image: wettyoss/wetty
+    container_name: wetty
+    networks:
+      - homelab
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    command: --ssh-host=172.17.0.1 --ssh-user=riaan --base=/ --port=3000
+
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:latest
+    container_name: wg-easy
+    restart: unless-stopped
+    networks:
+      - homelab
+    environment:
+      - LANG=en
+      - WG_HOST=165.255.244.151
+      - PASSWORD_HASH=$$2a$$12$$S5ADBmyCDDzlz.OusiRBV.uBk9p/eydHNpUrSMHTdh9QQ6DDGP56G
+      - WG_DEFAULT_DNS=172.21.0.9
+      - WG_DEFAULT_ADDRESS=10.8.0.x
+    volumes:
+      - ./services/wg-easy:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+
+  nginxproxymanager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginxproxymanager
+    networks:
+      - homelab
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 81:81
+      - 443:443
+    volumes:
+      - ./services/nginxproxymanager/data:/data
+      - ./services/nginxproxymanager/letsencrypt:/etc/letsencrypt
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    networks:
+      - homelab
+    healthcheck:
+      disable: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --schedule "0 0 3 * * *"
+
+  pilab-db:
+    image: postgres:16-alpine
+    container_name: pilab-db
+    networks:
+      - homelab
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=pilab
+      - POSTGRES_USER=pilab
+      - POSTGRES_PASSWORD=pilab
+    volumes:
+      - ./services/pilab-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pilab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pilab-api:
+    build: ./services/pilab-api
+    container_name: pilab-api
+    networks:
+      - homelab
+    restart: unless-stopped
+    ports:
+      - 5050:5000
+    depends_on:
+      pilab-db:
+        condition: service_healthy
+    volumes:
+      - ./media:/media:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /tmp:/tmp/camera:ro
+    environment:
+      - QBITTORRENT_USER=${QBITTORRENT_USER}
+      - QBITTORRENT_PASS=${QBITTORRENT_PASS}
+      - QBITTORRENT_URL=http://qbittorrent:8080
+      - RADARR_URL=http://radarr:7878
+      - RADARR_API_KEY=${RADARR_API_KEY}
+      - SONARR_URL=http://sonarr:8989
+      - SONARR_API_KEY=${SONARR_API_KEY}
+      - PLEX_URL=http://172.17.0.1:32400
+      - PLEX_TOKEN=${PLEX_TOKEN}
+      - GLANCES_URL=http://glances:61208
+      - NTFY_SERVER=${NTFY_SERVER}
+      - NTFY_TOPIC=${NTFY_TOPIC}
+      - MEDIA_PATH=/media
+      - DATABASE_URL=postgresql://pilab:pilab@pilab-db:5432/pilab
+      - PYTHONUNBUFFERED=1
+
+  pilab-dashboard:
+    build:
+      context: ./services/pilab-dashboard
+      args:
+        - PUBLIC_DOMAIN=${DOMAIN}
+    container_name: pilab-dashboard
+    networks:
+      - homelab
+    restart: unless-stopped
+    ports:
+      - 5173:5173
+    depends_on:
+      - pilab-api
+    environment:
+      - NODE_ENV=production
+      - PORT=5173
