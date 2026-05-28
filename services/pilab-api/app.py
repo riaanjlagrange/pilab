@@ -75,8 +75,6 @@ NTFY_SERVER     = os.getenv("NTFY_SERVER", "https://ntfy.sh")
 ALERT_THRESHOLD_GB     = float(os.getenv("ALERT_THRESHOLD_GB", "15"))
 CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", "60"))
 MEDIA_PATH             = os.getenv("MEDIA_PATH", "/media")
-STORAGE_URL            = os.getenv("STORAGE_URL", "https://storage.rpi.riaanjlagrange.com")
-DASHBOARD_URL          = os.getenv("DASHBOARD_URL", "https://rpi.riaanjlagrange.com")
 DATABASE_URL           = os.getenv("DATABASE_URL", "postgresql://pilab:pilab@pilab-db:5432/pilab")
 
 

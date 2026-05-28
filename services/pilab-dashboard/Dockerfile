@@ -16,6 +16,9 @@ RUN pnpm build
 # Production stage
 FROM node:20-alpine
 
+ARG PUBLIC_DOMAIN
+ENV PUBLIC_DOMAIN=$PUBLIC_DOMAIN
+
 WORKDIR /app
 
 # Copy built app and dependencies from builder

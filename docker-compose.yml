@@ -9,7 +9,8 @@ services:
   plex:
     image: plexinc/pms-docker
     container_name: plex
-    network_mode: host
+    networks:
+      - homelab
     restart: unless-stopped
     environment:
       - PLEX_UID=1000
@@ -286,3 +287,4 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5173
+      - PUBLIC_DOMAIN=${DOMAIN}

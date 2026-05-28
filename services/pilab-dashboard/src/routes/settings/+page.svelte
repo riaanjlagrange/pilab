@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fetchSettings, saveSettings, fetchContainers } from '$lib/api';
-	import { PUBLIC_DOMAIN } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 
 	// ─── State ────────────────────────────────────────────────────────────────
 	let diskThreshold = $state(85);
@@ -298,7 +298,7 @@
 
 				<div class="flex flex-wrap gap-3">
 					<a
-						href={`https://logs.${PUBLIC_DOMAIN}`}
+						href={`https://logs.${env.PUBLIC_DOMAIN}`}
 						target="_blank"
 						rel="noopener"
 						class="flex items-center gap-2 font-mono text-xs px-3 py-2 rounded-md
@@ -309,7 +309,7 @@
 					</a>
 
 					<a
-						href={`https://ssh.${PUBLIC_DOMAIN}`}
+						href={`https://ssh.${env.PUBLIC_DOMAIN}`}
 						target="_blank"
 						rel="noopener"
 						class="flex items-center gap-2 font-mono text-xs px-3 py-2 rounded-md

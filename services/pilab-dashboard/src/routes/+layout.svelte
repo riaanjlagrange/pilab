@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { fetchSystem } from '$lib/api';
-	import { PUBLIC_DOMAIN } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import './layout.css';
 
 	let { children } = $props();
@@ -10,7 +10,7 @@
 
 	const NAV = [
 		{ href: '/', label: 'Home', icon: 'ti-home' },
-		{ href: '/containers', label: 'Containers', icon: 'ti-brand-docker' },
+		{ href: '/services', label: 'Services', icon: 'ti-brand-docker' },
 		{ href: '/media', label: 'Media Manager', icon: 'ti-database' },
 		{ href: '/settings', label: 'Settings', icon: 'ti-settings' }
 	];
@@ -63,7 +63,7 @@
 			<!-- Spacer + hostname badge -->
 			<div class="ml-auto font-mono text-xs text-gray-600 flex items-center gap-1.5">
 				<i class="ti ti-server text-xs"></i>
-				{PUBLIC_DOMAIN || 'loading...'}
+				{env.PUBLIC_DOMAIN || 'loading...'}
 			</div>
 		</div>
 	</nav>

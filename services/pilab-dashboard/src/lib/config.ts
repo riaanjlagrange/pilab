@@ -1,4 +1,6 @@
-import { PUBLIC_DOMAIN } from '$env/static/public';
+import { env } from '$env/dynamic/public';
+
+const PUBLIC_DOMAIN = env.PUBLIC_DOMAIN ?? '';
 
 export const HOST = PUBLIC_DOMAIN;
 export const API_BASE = `https://api.${PUBLIC_DOMAIN}`;
@@ -135,7 +137,7 @@ export const CONTAINER_URLS: Record<string, string> = {
 	pihole: `https://pihole.${HOST}/admin`,
 	npm: `http://localhost:81`,
 	wetty: `https://ssh.${HOST}`,
-	glances: `https://glances.${HOST}`,
+	glances: `https://stats.${HOST}`,
 	dozzle: `https://logs.${HOST}`,
 	'homelab-api': `https://api.${HOST}`,
 	filebrowser: `https://files.${HOST}`
