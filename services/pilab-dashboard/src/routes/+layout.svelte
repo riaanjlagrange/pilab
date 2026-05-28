@@ -63,7 +63,7 @@
 			<!-- Spacer + hostname badge -->
 			<div class="ml-auto font-mono text-xs text-gray-600 flex items-center gap-1.5">
 				<i class="ti ti-server text-xs"></i>
-				{env.PUBLIC_DOMAIN || 'loading...'}
+				{env.PUBLIC_HOST || 'loading...'}
 			</div>
 		</div>
 	</nav>

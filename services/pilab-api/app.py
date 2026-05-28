@@ -67,7 +67,6 @@ QBITTORRENT_PASS = os.getenv("QBITTORRENT_PASS", "adminPassword")
 
 # System host
 PILAB_NAME      = os.getenv("PILAB_NAME", "rpi")
-DOMAIN          = os.getenv("DOMAIN", "rpi.riaanjlagrange.com")
 
 NTFY_TOPIC      = os.getenv("NTFY_TOPIC", "")
 NTFY_SERVER     = os.getenv("NTFY_SERVER", "https://ntfy.sh")

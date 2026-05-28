@@ -1,9 +1,9 @@
 import { env } from '$env/dynamic/public';
 
-const PUBLIC_DOMAIN = env.PUBLIC_DOMAIN ?? '';
+const PUBLIC_HOST = env.PUBLIC_HOST || 'localhost';
 
-export const HOST = PUBLIC_DOMAIN;
-export const API_BASE = `https://api.${PUBLIC_DOMAIN}`;
+export const HOST = PUBLIC_HOST;
+export const API_BASE = `http://${PUBLIC_HOST}:5050`;
 
 // ─── Container metadata ───────────────────────────────────────────────────────
 export type ContainerCategory = 'media' | 'automation' | 'download' | 'network' | 'system' | 'app';
@@ -100,47 +100,55 @@ export const CONTAINER_META: Record<string, ContainerMeta> = {
 		description: 'Automatic container updates'
 	},
 	// App
-	'homelab-api': {
-		label: 'Homelab API',
+	'pilab-api': {
+		label: 'Pilab API',
 		icon: 'ti-api',
 		category: 'app',
 		description: 'Flask backend API'
 	},
-	'homelab-dashboard': {
+	'pilab-db': {
+		label: 'Pilab DB',
+		icon: 'ti-database',
+		category: 'app',
+		description: 'PostgreSQL database for Pilab'
+	},
+	'pilab-dashboard': {
 		label: 'Dashboard',
 		icon: 'ti-layout-dashboard',
 		category: 'app',
 		description: 'pilab dashboard'
-	},
-	'homelab-storage-manager': {
-		label: 'Storage Manager',
-		icon: 'ti-database',
-		category: 'app',
-		description: 'Media storage manager'
 	},
 	filebrowser: {
 		label: 'FileBrowser',
 		icon: 'ti-folder',
 		category: 'app',
 		description: 'Web file manager'
+	},
+	'wg-easy': {
+		label: 'WG Easy',
+		icon: 'ti-lock',
+		category: 'app',
+		description: 'WireGuard VPN management'
 	}
 };
 
 // ─── Container URLs ───────────────────────────────────────────────────────────
 export const CONTAINER_URLS: Record<string, string> = {
-	plex: `https://plex.${HOST}`,
-	seerr: `https://seerr.${HOST}`,
-	radarr: `https://radarr.${HOST}`,
-	sonarr: `https://sonarr.${HOST}`,
-	prowlarr: `https://prowlarr.${HOST}`,
-	qbittorrent: `https://torrent.${HOST}`,
-	pihole: `https://pihole.${HOST}/admin`,
-	npm: `http://localhost:81`,
-	wetty: `https://ssh.${HOST}`,
-	glances: `https://stats.${HOST}`,
-	dozzle: `https://logs.${HOST}`,
-	'homelab-api': `https://api.${HOST}`,
-	filebrowser: `https://files.${HOST}`
+	plex: `http://${HOST}:32400/web`,
+	seerr: `http://${HOST}:5055`,
+	radarr: `http://${HOST}:7878`,
+	sonarr: `http://${HOST}:8989`,
+	prowlarr: `http://${HOST}:9696`,
+	qbittorrent: `http://${HOST}:8080`,
+	pihole: `http://${HOST}:8888/admin`,
+	nginxproxymanager: `http://${HOST}:81`,
+	wetty: `http://${HOST}:3000`,
+	glances: `http://${HOST}:61208`,
+	dozzle: `http://${HOST}:9999`,
+	'pilab-api': `http://${HOST}:5050`,
+	'pilab-db': `http://${HOST}:5432`,
+	filebrowser: `http://${HOST}:8181`,
+	'wg-easy': `http://${HOST}:51821`
 };
 
 // ─── Category display order & labels ─────────────────────────────────────────

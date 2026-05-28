@@ -12,6 +12,8 @@ services:
     networks:
       - homelab
     restart: unless-stopped
+    ports:
+      - 32400:32400
     environment:
       - PLEX_UID=1000
       - PLEX_GID=1000
@@ -210,7 +212,7 @@ services:
       - ./services/nginxproxymanager/letsencrypt:/etc/letsencrypt
 
   watchtower:
-    image: containrrr/watchtower
+    image: nickfedor/watchtower
     container_name: watchtower
     restart: unless-stopped
     networks:
@@ -219,6 +221,11 @@ services:
       disable: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATION_SKIP_TITLE=true
+      - WATCHTOWER_NOTIFICATION_URL=ntfy://ntfy.sh/${NTFY_TOPIC}?title=WatchtowerUpdates
     command: --schedule "0 0 3 * * *"
 
   pilab-db:
@@ -253,8 +260,8 @@ services:
     volumes:
       - ./media:/media:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /tmp:/tmp/camera:ro
     environment:
+      - HOST=${HOST}
       - QBITTORRENT_USER=${QBITTORRENT_USER}
       - QBITTORRENT_PASS=${QBITTORRENT_PASS}
       - QBITTORRENT_URL=http://qbittorrent:8080
@@ -275,7 +282,7 @@ services:
     build:
       context: ./services/pilab-dashboard
       args:
-        - PUBLIC_DOMAIN=${DOMAIN}
+        - PUBLIC_HOST=${HOST}
     container_name: pilab-dashboard
     networks:
       - homelab
@@ -287,4 +294,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5173
-      - PUBLIC_DOMAIN=${DOMAIN}
+      - PUBLIC_HOST=${HOST}
+
+
