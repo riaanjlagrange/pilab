@@ -7,6 +7,7 @@
 	import AlertBanner from '$lib/components/AlertBanner.svelte';
 	import NowPlaying from '$lib/components/NowPlaying.svelte';
 	import OnDeckCard from '$lib/components/OnDeckCard.svelte';
+	import DiskPieChart from '$lib/components/DiskPieChart.svelte';
 
 	// ─── State ────────────────────────────────────────────────────────────────
 	let system = $state<SystemStats | null>(null);
@@ -19,6 +20,7 @@
 
 	// ─── Derived ──────────────────────────────────────────────────────────────
 	let diskUsed = $derived(disk ? disk.percent_used : 0);
+	let diskFree = $derived(disk ? disk.free_gb : 0);
 
 	let alerts = $derived<Alert[]>([
 		...(disk && diskUsed >= diskThreshold
@@ -26,7 +28,7 @@
 					{
 						id: 'disk-threshold',
 						type: 'warning' as const,
-						message: `Disk usage is at ${diskUsed}% — above your ${diskThreshold}% threshold. Free: ${disk.free_gb.toFixed(1)} GB.`,
+						message: `Disk usage is at ${diskUsed}% — above your ${diskThreshold}% threshold. Free: ${diskFree.toFixed(1)} GB.`,
 						link: `/media?tab=media`,
 						linkLabel: 'Media Manager'
 					}
@@ -87,18 +89,10 @@
 			{/each}
 		</div>
 	{:else if system}
-		<div class="rounded-lg bg-white/5 border border-white/10 p-4 space-y-4">
-			<!-- Chips row -->
-			<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-				<SysChip label="Name" value={pilabName} icon="ti-server" />
-				{#if disk}
-					<SysChip label="Used" value="{diskUsed}%" icon="ti-chart-pie" />
-					<SysChip label="Free" value="{disk.free_gb.toFixed(1)} GB" icon="ti-database" />
-				{/if}
-			</div>
+		<div class="flex flex-col gap-3 sm:flex-row rounded-lg bg-white/5 border border-white/10 p-4">
+			<DiskPieChart height={150} />
 
-			<!-- Bars -->
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+			<div class="flex flex-col gap-3 w-full rounded-md bg-zinc-800 p-4">
 				<SysBar label="CPU" value={system.cpu_percent} icon="ti-cpu" />
 				<SysBar label="RAM" value={system.ram_percent} icon="ti-circuit-board" />
 				{#if disk}
