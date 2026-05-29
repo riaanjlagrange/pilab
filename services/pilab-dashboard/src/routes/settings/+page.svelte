@@ -309,7 +309,7 @@
 					</a>
 
 					<a
-						href={`http://${env.PUBLIC_HOST}:30000`}
+						href={`http://${env.PUBLIC_HOST}:3000`}
 						target="_blank"
 						rel="noopener"
 						class="flex items-center gap-2 font-mono text-xs px-3 py-2 rounded-md

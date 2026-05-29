@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { replaceState } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { fetchContainers } from '$lib/api';
 	import { CONTAINER_META, CATEGORY_ORDER, CATEGORY_LABELS, type ContainerCategory } from '$lib/config';
 	import type { Container } from '$lib/types.d.ts';
 	import ContainerCard from '$lib/components/ContainerCard.svelte';
+	import FilterControl from '$lib/components/FilterControl.svelte';
 
 	// ─── State ────────────────────────────────────────────────────────────────
 	let containers = $state<Container[]>([]);
@@ -39,6 +42,9 @@
 
 	// ─── Load ─────────────────────────────────────────────────────────────────
 	onMount(async () => {
+		const f = $page.url.searchParams.get('filter') as typeof filter;
+		if (f && ['all', 'running', 'stopped'].includes(f)) filter = f;
+
 		try {
 			containers = await fetchContainers();
 		} catch (e) {
@@ -66,17 +72,16 @@
 		{/if}
 	</div>
 
-	<div class="flex items-center gap-1 rounded-md bg-white/5 border border-white/10 p-1">
-		{#each (['all', 'running', 'stopped'] as const) as f (f)}
-			<button
-				onclick={() => (filter = f)}
-				class="font-mono text-xs px-3 py-1.5 rounded transition-all duration-150
-				       {filter === f ? 'bg-white/10 text-gray-200' : 'text-gray-500 hover:text-gray-300'}"
-			>
-				{f.charAt(0).toUpperCase() + f.slice(1)}
-			</button>
-		{/each}
-	</div>
+	<FilterControl
+		items={['all', 'running', 'stopped']}
+		active={filter}
+		size="sm"
+		onchange={(f) => {
+			filter = f as typeof filter;
+			replaceState(`?filter=${f}`, {});
+		}}
+	/>
+
 </div>
 
 {#if loading}

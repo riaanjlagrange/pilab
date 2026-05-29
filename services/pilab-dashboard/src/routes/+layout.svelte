@@ -11,7 +11,7 @@
 	const NAV = [
 		{ href: '/', label: 'Home', icon: 'ti-home' },
 		{ href: '/services', label: 'Services', icon: 'ti-brand-docker' },
-		{ href: '/media', label: 'Media Manager', icon: 'ti-database' },
+		{ href: '/manager', label: 'Media Manager', icon: 'ti-database' },
 		{ href: '/settings', label: 'Settings', icon: 'ti-settings' }
 	];
 
