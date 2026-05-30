@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { replaceState } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { fetchContainers } from '$lib/api';
 	import { CONTAINER_META, CATEGORY_ORDER, CATEGORY_LABELS, type ContainerCategory } from '$lib/config';
 	import type { Container } from '$lib/types.d.ts';
 	import ContainerCard from '$lib/components/ContainerCard.svelte';
-	import FilterControl from '$lib/components/FilterControl.svelte';
 	import InteractionBar from '@/components/InteractionBar.svelte';
 
 	// ─── State ────────────────────────────────────────────────────────────────
@@ -66,8 +64,10 @@
 			loading = false;
 		}
 	}
-	onMount(async () => {
+	onMount(() => {
 		loadContainers();
+		const interval = setInterval(loadContainers, 15000); // auto-refresh every 15s
+		return () => clearInterval(interval);
 	});
 
 	const sectionClass =

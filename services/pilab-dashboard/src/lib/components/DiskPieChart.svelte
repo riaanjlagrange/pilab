@@ -28,6 +28,8 @@
 
   onMount(() => {
     loadDisk();
+    const interval = setInterval(loadDisk, 5000); // auto-refresh every 5 seconds
+    return () => clearInterval(interval);
   });
 
   const chartData = $derived({

@@ -42,29 +42,37 @@
 	]);
 
 	// ─── Load ─────────────────────────────────────────────────────────────────
-	onMount(async () => {
-		const results = await Promise.allSettled([
+
+	async function loadStats() {
+		const [systemRes, diskRes, plexRes] = await Promise.allSettled([
 			fetchSystem(),
 			fetchDisk(),
 			fetchPlex(),
-			fetchSettings()
 		]);
+		if (systemRes.status === 'fulfilled') system = systemRes.value;
+		if (diskRes.status === 'fulfilled') disk = diskRes.value;
+		if (plexRes.status === 'fulfilled') plex = plexRes.value;
+	}
 
-		if (results[0].status === 'fulfilled') system = results[0].value;
-		else errors = [...errors, `System stats unavailable`];
+	async function loadSettings() {
+		const res = await fetchSettings();
+		diskThreshold = res.diskThreshold;
+		pilabName = res.pilabName;
+	}
 
-		if (results[1].status === 'fulfilled') disk = results[1].value;
-		else errors = [...errors, `Disk stats unavailable`];
+	onMount(() => {
+		loadSettings().catch((e) => {
+			console.error('Failed to load settings', e);
+			errors = [...errors, 'Failed to load settings.'];
+		});
+		loadStats().then(() => { loading = false; }).catch((e) => {
+			console.error('Failed to load stats', e);
+			errors = [...errors, 'Failed to load system stats.'];
+			loading = false;
+		});
 
-		if (results[2].status === 'fulfilled') plex = results[2].value;
-		// plex silently fails — no active streams is normal
-
-		if (results[3].status === 'fulfilled') {
-			diskThreshold = results[3].value.diskThreshold;
-			pilabName = results[3].value.pilabName;
-		}
-
-		loading = false;
+		const interval = setInterval(loadStats, 2000);
+		return () => clearInterval(interval);
 	});
 
 	// ─── Section header helper ────────────────────────────────────────────────

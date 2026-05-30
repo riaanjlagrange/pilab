@@ -95,6 +95,8 @@
 
 	onMount(() => {
 		loadData();
+		const interval = setInterval(loadData, 20000); // auto-refresh every 20s
+		return () => clearInterval(interval);
 	});
 
 	// ─── Delete ───────────────────────────────────────────────────────────────
