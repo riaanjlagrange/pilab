@@ -3,10 +3,9 @@
 	import { page } from '$app/stores';
 	import { deleteMedia, formatBytes, fetchStatus, fetchDownloads, fetchQueue } from '$lib/api';
 	import type { StatusData, MediaItem, Download, QueueData } from '$lib/types.d.ts';
-	import { replaceState } from '$app/navigation';
 	import DownloadCard from '$lib/components/DownloadCard.svelte';
 	import QueueCard from '$lib/components/QueueCard.svelte';
-	import FilterControl from '$lib/components/FilterControl.svelte';
+	import InteractionBar from '@/components/InteractionBar.svelte';
 
 	// ─── State ────────────────────────────────────────────────────────────────
 	const tabs = [
@@ -14,7 +13,12 @@
 		{ value: 'queue', label: 'Queue' },
 		{ value: 'library', label: 'Library' }
 	];
-	let tab = $state<'downloads' | 'queue' | 'library'>('downloads');
+	let tab = $derived<'downloads' | 'queue' | 'library'>(
+		(() => {
+			const t = $page.url.searchParams.get('tab');
+			return (t === 'downloads' || t === 'queue' || t === 'library') ? t : 'downloads';
+		})()
+	);
 	let status = $state<StatusData | null>(null);
 	let downloads = $state<Download[]>([]);
 	let queue = $state<QueueData>({ movies: [], series: [] });
@@ -90,19 +94,8 @@
 	}
 
 	onMount(() => {
-		const tabParam = $page.url.searchParams.get('tab') as 'downloads' | 'queue' | 'library' | null;
-		if (tabParam && ['downloads', 'queue', 'library'].includes(tabParam)) {
-			tab = tabParam;
-		}
 		loadData();
 	});
-
-	function refresh() {
-		refreshing = true;
-		loadData().finally(() => {
-			refreshing = false;
-		});
-	}
 
 	// ─── Delete ───────────────────────────────────────────────────────────────
 	async function handleDelete() {
@@ -138,29 +131,10 @@
 
 	const sectionClass =
 		'font-mono text-xs font-bold tracking-widest uppercase text-gray-500 flex items-center gap-3 after:flex-1 after:h-px after:bg-white/10 mb-4';
-</script>
+	</script>
 
-<!-- ─── Tabs ──────────────────────────────────────────────────────────────── -->
-<div class="mb-6 flex items-center justify-between gap-4">
-	<FilterControl
-		items={tabs}
-		active={tab}
-		onchange={(t) => {
-			tab = t as typeof tab;
-			replaceState(`?tab=${t}`, {});
-		}}
-	/>
-
-	<button
-		onclick={refresh}
-		disabled={loading || refreshing}
-		class="flex shrink-0 items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 font-mono text-xs text-gray-300 transition-all hover:bg-white/10 disabled:opacity-50"
-	>
-		<i class="ti ti-refresh {refreshing ? 'animate-spin' : ''} text-sm"></i>
-		Refresh
-	</button>
-</div>
-
+	<InteractionBar {tabs} {tab} loadData={loadData} paramKey="tab" />
+	
 {#if error}
 	<div
 		class="mb-4 flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3"

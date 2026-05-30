@@ -7,12 +7,24 @@
 	import type { Container } from '$lib/types.d.ts';
 	import ContainerCard from '$lib/components/ContainerCard.svelte';
 	import FilterControl from '$lib/components/FilterControl.svelte';
+	import InteractionBar from '@/components/InteractionBar.svelte';
 
 	// ─── State ────────────────────────────────────────────────────────────────
+
 	let containers = $state<Container[]>([]);
 	let loading = $state(true);
 	let error = $state('');
-	let filter = $state<'all' | 'running' | 'stopped'>('all');
+	const filters = [
+		{ value: 'all', label: 'All' },
+		{ value: 'running', label: 'Running' },
+		{ value: 'stopped', label: 'Stopped' }
+	];
+	let filter = $derived<'all' | 'running' | 'stopped'>(
+		(() => {
+			const t = $page.url.searchParams.get('filter');
+			return (t === 'all' || t === 'running' || t === 'stopped') ? t : 'all';
+		})()
+	);
 
 	// ─── Derived ──────────────────────────────────────────────────────────────
 	let filtered = $derived(
@@ -41,48 +53,36 @@
 	let stoppedCount = $derived(containers.filter((c) => c.status !== 'running').length);
 
 	// ─── Load ─────────────────────────────────────────────────────────────────
-	onMount(async () => {
-		const f = $page.url.searchParams.get('filter') as typeof filter;
-		if (f && ['all', 'running', 'stopped'].includes(f)) filter = f;
 
+	async function loadContainers() {
+		loading = true;
+		error = '';
 		try {
 			containers = await fetchContainers();
 		} catch (e) {
-			error = 'Could not load containers. ' + e;
+			error = 'Could not load containers. ';
+			console.error(e);
 		} finally {
 			loading = false;
 		}
+	}
+	onMount(async () => {
+		loadContainers();
 	});
 
 	const sectionClass =
 		'font-mono text-xs font-bold tracking-widest uppercase text-gray-500 flex items-center gap-3 after:flex-1 after:h-px after:bg-white/10 mb-4';
 </script>
 
-<!-- Header + filter bar -->
-<div class="mb-6 flex items-center justify-between flex-wrap gap-3">
-	<div>
-		<h1 class="font-mono text-lg font-bold tracking-wide text-gray-200">Containers</h1>
-		{#if !loading}
-			<p class="font-mono text-xs text-gray-500 mt-1">
-				<span class="text-green-400">{runningCount} running</span>
-				{#if stoppedCount > 0}
-					&nbsp;·&nbsp;<span class="text-red-400">{stoppedCount} stopped</span>
-				{/if}
-			</p>
+<InteractionBar tabs={filters} tab={filter} loadData={loadContainers} paramKey="filter" />
+{#if !loading}
+	<p class="font-mono text-xs text-gray-500 mt-2 mb-4">
+		<span class="text-green-400">{runningCount} running</span>
+		{#if stoppedCount > 0}
+			&nbsp;·&nbsp;<span class="text-red-400">{stoppedCount} stopped</span>
 		{/if}
-	</div>
-
-	<FilterControl
-		items={['all', 'running', 'stopped']}
-		active={filter}
-		size="sm"
-		onchange={(f) => {
-			filter = f as typeof filter;
-			replaceState(`?filter=${f}`, {});
-		}}
-	/>
-
-</div>
+	</p>
+{/if}
 
 {#if loading}
 	<!-- Skeleton -->
