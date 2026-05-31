@@ -79,19 +79,28 @@ export interface StatusData {
 }
 
 export interface Download {
-  name: string;
+  id: string;
+  status: 'downloading' | 'metaDL' | 'forcedDL' | string;
   progress: number;
   speed_mb: number;
   eta: string;
   size_gb: number;
-  state: string;
 }
 
 export interface QueueItem {
-  id: number;
+  id: string;
   title: string;
   status: string;
   progress: number;
+  speed_mb: number;
+  eta: string;
+  size_gb: number;
+  completed_gb: number;
+  seeds: number;
+  peers: number;
+  added_on: number;
+  category: string;
+  tags: string;
 }
 
 export interface QueueData {

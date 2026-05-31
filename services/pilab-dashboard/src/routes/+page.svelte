@@ -29,7 +29,7 @@
 						id: 'disk-threshold',
 						type: 'warning' as const,
 						message: `Disk usage is at ${diskUsed}% — above your ${diskThreshold}% threshold. Free: ${diskFree.toFixed(1)} GB.`,
-						link: `/media?tab=media`,
+						link: `/manager?tab=library`,
 						linkLabel: 'Media Manager'
 					}
 				]

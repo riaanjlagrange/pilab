@@ -28,9 +28,7 @@ Environment variables:
 """
 
 import os
-import json
 import shutil
-import socket
 import threading
 import time
 from datetime import datetime, timezone
@@ -38,9 +36,9 @@ from datetime import datetime, timezone
 import docker
 import psutil
 import requests
-from flask import Flask, jsonify, request, Response, send_file
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-from sqlalchemy import Column, DateTime, Integer, JSON, MetaData, String, Table, create_engine, select, func
+from sqlalchemy import Column, DateTime, Integer, JSON, MetaData, Table, create_engine, select, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 app = Flask(__name__)
@@ -67,6 +65,7 @@ QBITTORRENT_PASS = os.getenv("QBITTORRENT_PASS", "adminPassword")
 
 # System host
 PILAB_NAME      = os.getenv("PILAB_NAME", "rpi")
+HOST            = os.getenv("HOST", "localhost")
 
 NTFY_TOPIC      = os.getenv("NTFY_TOPIC", "")
 NTFY_SERVER     = os.getenv("NTFY_SERVER", "https://ntfy.sh")
@@ -414,78 +413,92 @@ def get_downloads():
             print(f"[qBittorrent] Login forbidden - check credentials. Response: {login_resp.text}", flush=True)
             return []
         login_resp.raise_for_status()
-
         resp = sess.get(f"{QBITTORRENT_URL}/api/v2/torrents/info", timeout=10)
         resp.raise_for_status()
         torrents = resp.json()
-
+        print(f"[qBittorrent] Fetched {len(torrents)} torrents", flush=True)
         downloads = []
         for t in torrents:
-            if t.get("state") in ("downloading", "metaDL", "forcedDL"):
-                size_gb = round(t.get("size", 0) / 1e9, 2)
-                progress = round(t.get("progress", 0) * 100, 1)
-                speed = t.get("dlspeed", 0)
-                speed_mb = round(speed / 1e6, 1) if speed else 0
+            state = t.get("state")
+            if state in ("downloading", "metaDL", "forcedDL"):
                 eta_sec = t.get("eta", -1)
-
                 if eta_sec > 0:
                     hours = eta_sec // 3600
                     minutes = (eta_sec % 3600) // 60
                     eta = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
                 else:
                     eta = "unknown"
-
+                speed = t.get("dlspeed", 0)
                 downloads.append({
-                    "name":     t.get("name"),
-                    "progress": progress,
-                    "speed_mb": speed_mb,
+                    "id":       t.get("hash"),
+                    "status":   state,
+                    "progress": round(t.get("progress", 0) * 100, 1),
+                    "speed_mb": round(speed / 1e6, 1) if speed else 0,
                     "eta":      eta,
-                    "size_gb":  size_gb,
-                    "state":    t.get("state"),
+                    "size_gb":  round(t.get("size", 0) / 1e9, 2),
                 })
-
         return downloads
     except Exception as e:
         print(f"[qBittorrent] Failed: {e}", flush=True)
         return []
 
 def get_queue():
-    """Fetch queue from Radarr and Sonarr."""
+    """Fetch queue from qBittorrent, categorised by movies vs series."""
     queue_data = {"movies": [], "series": []}
-
     try:
-        movies_response = radarr_get("/api/v3/queue")
-        movies_queue = movies_response.get("records", []) if isinstance(movies_response, dict) else []
-        for item in movies_queue:
-            if item.get("title") and item.get("id"):
-                size = item.get("size", 0)
-                sizeleft = item.get("sizeleft", 0)
-                progress = ((size - sizeleft) / size * 100) if size > 0 else 0
-                queue_data["movies"].append({
-                    "id":     item["id"],
-                    "title":  item.get("title"),
-                    "status": item.get("status", "unknown"),
-                    "progress": round(progress, 1),
-                })
-    except Exception as e:
-        print(f"[Radarr Queue] Failed: {e}", flush=True)
+        sess = requests.Session()
+        login_url = f"{QBITTORRENT_URL}/api/v2/auth/login"
+        login_resp = sess.post(login_url, data={"username": QBITTORRENT_USER, "password": QBITTORRENT_PASS}, timeout=10)
+        if login_resp.status_code == 403:
+            print(f"[qBittorrent Queue] Login forbidden - check credentials. Response: {login_resp.text}", flush=True)
+            return queue_data
+        login_resp.raise_for_status()
+        resp = sess.get(f"{QBITTORRENT_URL}/api/v2/torrents/info", timeout=10)
+        resp.raise_for_status()
+        torrents = resp.json()
+        print(f"[qBittorrent Queue] Fetched {len(torrents)} torrents", flush=True)
 
-    try:
-        series_response = sonarr_get("/api/v3/queue")
-        series_queue = series_response.get("records", []) if isinstance(series_response, dict) else []
-        for item in series_queue:
-            if item.get("title") and item.get("id"):
-                size = item.get("size", 0)
-                sizeleft = item.get("sizeleft", 0)
-                progress = ((size - sizeleft) / size * 100) if size > 0 else 0
-                queue_data["series"].append({
-                    "id":     item["id"],
-                    "title":  item.get("title"),
-                    "status": item.get("status", "unknown"),
-                    "progress": round(progress, 1),
-                })
+        for t in torrents:
+            size      = t.get("size", 0)
+            downloaded = t.get("completed", 0)
+            progress  = round((downloaded / size * 100) if size > 0 else 0, 1)
+            category  = (t.get("category") or "").lower()
+            tags      = (t.get("tags") or "").lower()
+
+            # ETA
+            eta_sec = t.get("eta", -1)
+            if eta_sec and eta_sec > 0 and eta_sec < 8640000:  # ignore qBit's ∞ sentinel (8640000)
+                hours   = eta_sec // 3600
+                minutes = (eta_sec % 3600) // 60
+                eta     = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
+            else:
+                eta = "unknown"
+
+            item = {
+                "id":        t.get("hash"),
+                "title":     t.get("name"),
+                "status":    t.get("state", "unknown"),
+                "progress":  progress,
+                "speed_mb":  round(t.get("dlspeed", 0) / 1e6, 1),
+                "eta":       eta,
+                "size_gb":   round(size / 1e9, 2),
+                "completed_gb": round(downloaded / 1e9, 2),
+                "seeds":     t.get("num_seeds", 0),
+                "peers":     t.get("num_leechs", 0),
+                "added_on":  t.get("added_on"),   # unix timestamp
+                "category":  t.get("category", ""),
+                "tags":      t.get("tags", ""),
+            }
+
+            if "radarr" in category or "movie" in category or "radarr" in tags or "movie" in tags:
+                queue_data["movies"].append(item)
+            elif "sonarr" in category or "tv" in category or "series" in category or "sonarr" in tags or "tv" in tags or "series" in tags:
+                queue_data["series"].append(item)
+            else:
+                print(f"[qBittorrent Queue] Uncategorised torrent: {t.get('name')} (category='{category}', tags='{tags}')", flush=True)
+
     except Exception as e:
-        print(f"[Sonarr Queue] Failed: {e}", flush=True)
+        print(f"[qBittorrent Queue] Failed: {e}", flush=True)
 
     return queue_data
 
@@ -626,32 +639,110 @@ def api_settings_set():
     else:
         return jsonify({"error": "Failed to save settings"}), 500
 
+@app.route("/api/webhooks/radarr", methods=["POST"])
+def webhook_radarr():
+    """Radarr calls this when a movie is imported."""
+    data = request.get_json(silent=True) or {}
+    event = data.get("eventType")
+
+    # for testing the webhook
+    if request.method == "GET":
+        return jsonify({"ok": True})
+
+    # Give Plex a moment to scan the imported file
+    time.sleep(10)
+
+    if event != "Download":
+        return jsonify({"ok": True})  # ignore grabbed, health check, etc.
+
+    movie = data.get("movie", {})
+    title = movie.get("title", "Unknown")
+    year  = movie.get("year")
+
+    print(f"[Webhook] Radarr import: {title} ({year})", flush=True)
+
+    plex_url = f"http://{HOST}:32400/web"
+    msg = f"{title} ({year}) has finished downloading and is ready to watch."
+    if plex_url:
+        msg += f"\n\n▶ Watch on Plex: {plex_url}"
+
+    send_ntfy(
+        title=f"🎬 {title} is ready",
+        message=msg,
+        priority="default",
+        click_url=plex_url or f"http://{HOST}:5173",
+        tags="white_check_mark,clapper",
+    )
+    return jsonify({"ok": True})
+
+
+@app.route("/api/webhooks/sonarr", methods=["POST"])
+def webhook_sonarr():
+    """Sonarr calls this when an episode is imported."""
+    data = request.get_json(silent=True) or {}
+    event = data.get("eventType")
+
+    # for testing the webhook
+    if request.method == "GET":
+        return jsonify({"ok": True})
+
+    # Give Plex a moment to scan the imported file
+    time.sleep(10)
+
+    if event != "Download":
+        return jsonify({"ok": True})
+
+    series  = data.get("series", {})
+    episode = data.get("episodes", [{}])[0]  # Sonarr sends a list
+    title   = series.get("title", "Unknown")
+    year    = series.get("year")
+    ep_title = episode.get("title", "")
+    season  = episode.get("seasonNumber", 0)
+    ep_num  = episode.get("episodeNumber", 0)
+    ep_str  = f"S{season:02d}E{ep_num:02d}"
+
+    print(f"[Webhook] Sonarr import: {title} {ep_str} - {ep_title}", flush=True)
+
+    plex_url = f"http://{HOST}:32400/web"
+    msg = f"{title} · {ep_str} — {ep_title} is ready to watch."
+    if plex_url:
+        msg += f"\n\n▶ Watch on Plex: {plex_url}"
+
+    send_ntfy(
+        title=f"📺 {ep_str} {title} is ready",
+        message=msg,
+        priority="default",
+        click_url=plex_url or f"http://{HOST}:5173",
+        tags="white_check_mark,tv",
+    )
+    return jsonify({"ok": True})
+
 # ── ntfy helpers ──────────────────────────────────────────────────────────────
 
-def send_ntfy(title, message, priority="high"):
-	settings = get_settings()
-	ntfy_topic = settings.get("ntfyTopic", NTFY_TOPIC)
-	if not ntfy_topic:
-		print("[ntfy] ntfyTopic not set — skipping", flush=True)
-		return
-	safe_title = title.encode("ascii", "ignore").decode("ascii").strip()
-	headers = {
-		"Title":    safe_title,
-		"Priority": priority,
-		"Tags":     "warning,floppy_disk",
-		"Click":    f"https://{DOMAIN}/media?tab=media",
-	}
-	try:
-		resp = requests.post(
-			f"{NTFY_SERVER}/{ntfy_topic}",
-			data=message.encode("utf-8"),
-			headers=headers,
-			timeout=10
-		)
-		resp.raise_for_status()
-		print(f"[ntfy] Sent: {safe_title}", flush=True)
-	except Exception as e:
-		print(f"[ntfy] Failed: {e}", flush=True)
+def send_ntfy(title, message, priority="high", click_url=None, tags="white_check_mark,arrow_down"):
+    settings = get_settings()
+    ntfy_topic = settings.get("ntfyTopic", NTFY_TOPIC)
+    if not ntfy_topic:
+        print("[ntfy] ntfyTopic not set — skipping", flush=True)
+        return
+    safe_title = title.encode("ascii", "ignore").decode("ascii").strip()
+    headers = {
+        "Title":    safe_title,
+        "Priority": priority,
+        "Tags":     tags,
+        "Click":    click_url or f"http://{HOST}:5173",
+    }
+    try:
+        resp = requests.post(
+            f"{NTFY_SERVER}/{ntfy_topic}",
+            data=message.encode("utf-8"),
+            headers=headers,
+            timeout=10
+        )
+        resp.raise_for_status()
+        print(f"[ntfy] Sent: {safe_title}", flush=True)
+    except Exception as e:
+        print(f"[ntfy] Failed: {e}", flush=True)
 
 # ── Background monitor thread ─────────────────────────────────────────────────
 
@@ -679,7 +770,7 @@ def monitor_loop():
             print(f"[Monitor] Disk usage: {used_pct}%", flush=True)
 
             if used_pct >= threshold and not alert_sent:
-                storage_link = f"https://{DOMAIN}/media?tab=media"
+                storage_link = f"http://{HOST}:5173/manager?tab=queue"
                 send_ntfy(
                     f"Disk Usage Alert - {used_pct}%",
                     (
@@ -687,7 +778,10 @@ def monitor_loop():
                         f"Used: {disk['used_gb']} GB / {disk['total_gb']} GB\n"
                         f"Free: {disk['free_gb']} GB\n\n"
                         f"Manage storage: {storage_link}"
-                    )
+                    ),
+                    priority="high",
+                    click_url=storage_link,
+                    tags="warning,floppy_disk"
                 )
                 alert_sent = True
 

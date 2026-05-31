@@ -52,13 +52,13 @@
 
 	// ─── Load ─────────────────────────────────────────────────────────────────
 
-	async function loadContainers() {
-		loading = true;
+	async function loadContainers(isBackground = false) {
+		if (!isBackground) loading = true
 		error = '';
 		try {
 			containers = await fetchContainers();
 		} catch (e) {
-			error = 'Could not load containers. ';
+			if (!isBackground) error = 'Failed to load containers';
 			console.error(e);
 		} finally {
 			loading = false;
@@ -66,7 +66,7 @@
 	}
 	onMount(() => {
 		loadContainers();
-		const interval = setInterval(loadContainers, 15000); // auto-refresh every 15s
+		const interval = setInterval(() => loadContainers(true), 15000); // auto-refresh every 15s
 		return () => clearInterval(interval);
 	});
 

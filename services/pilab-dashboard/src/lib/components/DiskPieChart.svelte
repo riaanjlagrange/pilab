@@ -6,7 +6,7 @@
   } from 'chart.js';
   import ChartDataLabels from 'chartjs-plugin-datalabels';
   import { fetchDisk } from '$lib/api';
-  import InternalButton from '$lib/components/InternalButton.svelte';
+  import Button from '@/components/Button.svelte';
 	import { onMount } from 'svelte';
 
   ChartJS.register(Title, Legend, ArcElement, CategoryScale, ChartDataLabels);
@@ -28,7 +28,7 @@
 
   onMount(() => {
     loadDisk();
-    const interval = setInterval(loadDisk, 5000); // auto-refresh every 5 seconds
+    const interval = setInterval(loadDisk, 20000); // auto-refresh every 20 seconds
     return () => clearInterval(interval);
   });
 
@@ -101,7 +101,7 @@
       </div>
     </div>
     <div class="mt-5">
-      <InternalButton icon="folder" label="Manage disk" href="/manager?tab=library" />
+      <Button icon="folder" label="Manage disk" href="/manager?tab=library" />
     </div>
   </div>
 {/if}

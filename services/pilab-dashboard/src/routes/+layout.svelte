@@ -5,6 +5,7 @@
 	import { env } from '$env/dynamic/public';
 	import './layout.css';
 	import DiskPieChart from '$lib/components/DiskPieChart.svelte';
+	import DownloadIndicator from '@/components/DownloadIndicator.svelte';
 
 	let { children } = $props();
 	let pilabName = $state('');
@@ -63,6 +64,7 @@
 
 			<!-- Spacer + hostname badge -->
 			<div class="ml-auto font-mono text-xs text-gray-600 flex items-center gap-1.5">
+				<DownloadIndicator />
 				<DiskPieChart compact height={20} />
 				<i class="ti ti-server text-xs"></i>
 				{env.PUBLIC_HOST || 'loading...'}
