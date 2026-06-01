@@ -16,6 +16,7 @@ services/nginxproxymanager/data/
 services/nginxproxymanager/letsencrypt/
 services/filebrowser/database.db
 services/pilab-db/
+services/wg-easy/
 
 # ── Media ─────────────────────────────────────────────────────────────────────
 media/
@@ -28,6 +29,9 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.venv/
+venv/
 .Python
 *.egg-info/
 dist/
@@ -38,4 +42,3 @@ build/
 Thumbs.db
 *.swp
 *.swo
-services/wg-easy/
