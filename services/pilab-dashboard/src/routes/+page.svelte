@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { fetchSystem, fetchDisk, fetchPlex, fetchSettings } from '$lib/api';
 	import type { SystemStats, DiskStats, PlexData, Alert } from '$lib/types.d.ts';
-	import SysBar from '$lib/components/SysBar.svelte';
 	import SysChip from '$lib/components/SysChip.svelte';
 	import AlertBanner from '$lib/components/AlertBanner.svelte';
 	import NowPlaying from '$lib/components/NowPlaying.svelte';
@@ -97,21 +96,14 @@
 			{/each}
 		</div>
 	{:else if system}
-		<div class="flex flex-col gap-3 sm:flex-row rounded-lg bg-white/5 border border-white/10 p-4">
-			<DiskPieChart height={150} />
+		<div class="flex flex-col gap-3 sm:flex-row rounded-lg">
+			<DiskPieChart height={180} />
 
-			<div class="flex flex-col gap-3 w-full rounded-md bg-zinc-800 p-4">
-				<SysBar label="CPU" value={system.cpu_percent} icon="ti-cpu" />
-				<SysBar label="RAM" value={system.ram_percent} icon="ti-circuit-board" />
-				{#if disk}
-					<SysBar
-						label="Disk"
-						value={diskUsed}
-						icon="ti-database"
-						warnAt={disk.percent_used - 10}
-						dangerAt={disk.percent_used}
-					/>
-				{/if}
+			<div class="grid grid-cols-2 gap-3 w-full rounded-sm">
+				<SysChip label="Uptime" value={system.uptime_human} icon="ti-clock" />
+				<SysChip label="RAM" value={system.ram_percent + '%'} icon="ti-cpu" />
+				<SysChip label="CPU" value={system.cpu_percent + '%'} icon="ti-cpu" />
+				<SysChip label="CPU Temp" value={system.cpu_temp + '°C'} icon="ti-thermometer" />
 			</div>
 		</div>
 	{:else}

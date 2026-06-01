@@ -72,7 +72,7 @@
 
 {:else}
   <!-- Dashboard card variant -->
-  <div class="rounded-md bg-zinc-800 p-4 w-full h-full">
+  <div class="rounded-sm bg-white/5 p-4 w-full h-full border border-white/10 ">
     <div class="mb-4 flex items-center justify-between">
       <span class="text-sm font-medium">Disk usage</span>
     </div>

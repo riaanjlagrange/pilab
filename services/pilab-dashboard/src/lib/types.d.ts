@@ -1,6 +1,7 @@
 export interface SystemStats {
   pilab_name: string;
   cpu_percent: number;
+  cpu_temp: number;
   ram_percent: number;
   ram_used_gb: number;
   ram_total_gb: number;

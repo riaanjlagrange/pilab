@@ -38,9 +38,9 @@
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
 </svelte:head>
 
-<div class="min-h-screen bg-[#0a0c0f] text-gray-200">
+<div class="min-h-screen bg-black text-gray-200">
 	<!-- Nav bar -->
-	<nav class="sticky top-0 z-50 border-b border-white/10 bg-[#0a0c0f]/80 backdrop-blur-md">
+	<nav class="sticky top-0 z-50 border-b border-white/10 bg-black backdrop-blur-md">
 		<div class="max-w-6xl mx-auto px-4 flex items-center h-12 gap-1">
 			<!-- Logo / wordmark -->
 			<a href="/" class="font-mono text-sm font-bold text-gray-200 mr-4 flex items-center gap-2">

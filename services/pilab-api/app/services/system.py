@@ -18,6 +18,7 @@ def get_system():
     result = {
         "pilab_name":     pilab_name,
         "cpu_percent":    0,
+        "cpu_temp":       0,
         "ram_percent":    0,
         "ram_used_gb":    0,
         "ram_total_gb":   0,
@@ -28,6 +29,16 @@ def get_system():
     try:
         cpu_resp = requests.get(f"{glances_url}/api/4/cpu", timeout=3)
         result["cpu_percent"] = round(cpu_resp.json().get("total", 0), 1)
+
+        cpu_temp_resp = requests.get(f"{glances_url}/api/4/sensors", timeout=3)
+        sensors = cpu_temp_resp.json()
+        cpu_temp = 0
+
+        for sensor in sensors:
+            if sensor.get("label", "").startswith("cpu_thermal"):
+                cpu_temp = sensor.get("value", 0)
+                break
+        result["cpu_temp"] = round(cpu_temp, 1)
 
         mem_resp = requests.get(f"{glances_url}/api/4/mem", timeout=3)
         mem = mem_resp.json()
@@ -47,6 +58,7 @@ def get_system():
             ram    = psutil.virtual_memory()
             uptime = int(time.time() - psutil.boot_time())
             result["cpu_percent"]    = round(cpu, 1)
+            result["cpu_temp"]       = round(psutil.sensors_temperatures().get("cpu-thermal", [0])[0].current, 1)
             result["ram_percent"]    = round(ram.percent, 1)
             result["ram_used_gb"]    = round(ram.used  / 1e9, 2)
             result["ram_total_gb"]   = round(ram.total / 1e9, 2)
