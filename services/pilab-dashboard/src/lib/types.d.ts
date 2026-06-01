@@ -24,28 +24,34 @@ export interface Container {
 }
 
 export interface NowPlayingItem {
+  type: 'movie' | 'episode' | string;
   title: string;
   user: string;
-  progress: number;
-  duration: number;
-  thumb?: string;
-  type: 'movie' | 'episode' | string;
-  grandparent_title?: string;
+  state: string;
+  show?: string;
+  episode?: string;
+  progress_pct?: number;
+  thumb_url?: string | null;
+  plex_link?: string | null;
 }
 
 export interface OnDeckItem {
-  title: string;
-  thumb?: string;
   type: 'movie' | 'episode' | string;
-  grandparent_title?: string;
+  title: string;
+  subtitle: string;
   year?: number;
+  rating_key: string;
+  key: string;
+  thumb_url?: string | null;
+  art_url?: string | null;
+  plex_link: string;
+  progress_pct?: number;
 }
 
 export interface PlexData {
   now_playing: NowPlayingItem[];
   on_deck: OnDeckItem[];
 }
-
 export interface MovieItem {
   id: number;
   title: string;

@@ -11,6 +11,7 @@ class Config:
     RADARR_URL       = os.getenv("RADARR_URL",       "http://radarr:7878")
     SONARR_URL       = os.getenv("SONARR_URL",       "http://sonarr:8989")
     PLEX_URL         = os.getenv("PLEX_URL",         "http://host.docker.internal:32400")
+    PLEX_PORT        = int(os.getenv("PLEX_PORT",    "32400"))
     GLANCES_URL      = os.getenv("GLANCES_URL",      "http://glances:61208")
     QBITTORRENT_URL  = os.getenv("QBITTORRENT_URL",  "http://qbittorrent:8080")
     NTFY_SERVER      = os.getenv("NTFY_SERVER",      "https://ntfy.sh")

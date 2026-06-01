@@ -77,6 +77,7 @@
 	// ─── Section header helper ────────────────────────────────────────────────
 	const sectionClass =
 		'font-mono text-xs font-bold tracking-widest uppercase text-gray-500 flex items-center gap-3 after:flex-1 after:h-px after:bg-white/10 mb-4';
+
 </script>
 
 <!-- Alerts -->
@@ -84,11 +85,6 @@
 
 <!-- System stats -->
 <section class="mb-8">
-	<h2 class={sectionClass}>
-		<i class="ti ti-cpu text-xs"></i>
-		System
-	</h2>
-
 	{#if loading}
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
 			{#each Array(4) as _, i (i)}
@@ -96,6 +92,7 @@
 			{/each}
 		</div>
 	{:else if system}
+		<p class="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">System</p>
 		<div class="flex flex-col gap-3 sm:flex-row rounded-lg">
 			<DiskPieChart height={180} />
 
@@ -110,14 +107,8 @@
 		<p class="font-mono text-xs text-gray-600">Could not load system stats.</p>
 	{/if}
 </section>
-
 <!-- Plex -->
-<section class="mb-8">
-	<h2 class={sectionClass}>
-		<i class="ti ti-movie -xs"></i>
-		Plex
-	</h2>
-
+<section class="mb-4">
 	{#if loading}
 		<div class="h-24 rounded-lg bg-white/5 border border-white/10 animate-pulse"></div>
 	{:else if plex}
@@ -130,14 +121,15 @@
 				{/each}
 			</div>
 		{:else}
+			<p class="font-mono text-xs text-gray-500 uppercase tracking-widest">Now Playing</p>
 			<p class="font-mono text-xs text-gray-600 mb-4">Nothing streaming right now.</p>
 		{/if}
 
 		<!-- On Deck -->
 		{#if plex.on_deck.length > 0}
 			<div>
-				<p class="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">On Deck</p>
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+				<p class="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3">Watch Next</p>
+				<div class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-2">
 					{#each plex.on_deck.slice(0, 6) as item, i (i)}
 						<OnDeckCard {item} />
 					{/each}
