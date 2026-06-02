@@ -9,7 +9,11 @@ import type {
 	StatusData,
 	Download,
 	QueueData,
-	Settings
+	Settings,
+	SearchResult,
+	ServiceProfiles,
+	RequestPayload,
+	RequestResult,
 } from './types.d.ts';
 
 const currentApiBase = DEFAULT_API_BASE;
@@ -33,6 +37,52 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 // ─── Endpoints ────────────────────────────────────────────────────────────────
+
+export const searchPlex = async (q: string): Promise<SearchResult[]> => {
+	try {
+		return await get<SearchResult[]>(`/api/search?q=${encodeURIComponent(q)}`);
+	} catch {
+		return [];
+	}
+};
+
+export const searchRadarr = async (q: string): Promise<SearchResult[]> => {
+	try {
+		return await get<SearchResult[]>(`/api/search/radarr?q=${encodeURIComponent(q)}`);
+	} catch {
+		return [];
+	}
+};
+
+export const searchSonarr = async (q: string): Promise<SearchResult[]> => {
+	try {
+		return await get<SearchResult[]>(`/api/search/sonarr?q=${encodeURIComponent(q)}`);
+	} catch {
+		return [];
+	}
+};
+
+export const getRadarrProfiles = async (): Promise<ServiceProfiles> => {
+	try {
+		return await get<ServiceProfiles>('/api/search/profiles/radarr');
+	} catch {
+		return { quality_profiles: [], root_folders: [] };
+	}
+};
+
+export const getSonarrProfiles = async (): Promise<ServiceProfiles> => {
+	try {
+		return await get<ServiceProfiles>('/api/search/profiles/sonarr');
+	} catch {
+		return { quality_profiles: [], root_folders: [] };
+	}
+};
+
+// ── Requests ─────────────────────────────────────────────────────────────────
+
+export const requestMovie = (payload: RequestPayload) => post<RequestResult>('/api/request/movie', payload);
+
+export const requestShow = (payload: RequestPayload) => post<RequestResult>('/api/request/show', payload);
 
 /** CPU, RAM, uptime, hostname (Glances v4) */
 export const fetchSystem = () => get<SystemStats>('/api/system');

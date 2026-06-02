@@ -38,6 +38,9 @@ def create_app(config=None):
     from .routes.plex       import bp as plex_bp
     from .routes.settings   import bp as settings_bp
     from .routes.webhooks   import bp as webhooks_bp
+    from .routes.search     import bp as search_bp
+    from .routes.request    import bp as request_bp
+
 
     app.register_blueprint(system_bp)
     app.register_blueprint(containers_bp)
@@ -46,6 +49,8 @@ def create_app(config=None):
     app.register_blueprint(plex_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(webhooks_bp)
+    app.register_blueprint(search_bp)
+    app.register_blueprint(request_bp)
 
     # ── Error handlers ─────────────────────────────────────────────────────
     register_error_handlers(app)

@@ -35,10 +35,10 @@
   const chartData = $derived({
     labels: ['Used', 'Free'],
     datasets: [{
-      data: [diskUsed, diskFree],
-      backgroundColor: ['#ef4444', '#22c55e'],
-      borderColor: ['#dc2626', '#16a34a'],
-      borderWidth: 0.1,
+        data: [diskUsed, diskFree],
+        backgroundColor: ['#bfdbfe', '#1e3a5f'],
+        borderColor:     ['#bfdbfe', '#1e3a5f'],
+        borderWidth: 0.1,
     }],
   });
 

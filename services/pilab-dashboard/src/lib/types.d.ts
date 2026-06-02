@@ -1,3 +1,58 @@
+export type SearchSource = 'radarr' | 'sonarr' | 'plex';
+export type MediaType    = 'movie' | 'show' | 'episode';
+
+export interface SearchResult {
+  source:      SearchSource;
+  type:        MediaType;
+  title:       string;
+  year?:       number;
+  overview?:   string;
+  tmdb_id?:    number;
+  tvdb_id?:    number;
+  imdb_id?:    string;
+  poster_url?: string | null;
+  fanart_url?: string | null;
+  rating?:     number | null;
+  plex_link?:  string | null;
+  in_plex?:    boolean;
+  // radarr
+  in_radarr?:  boolean;
+  radarr_id?:  number;
+  // sonarr
+  in_sonarr?:  boolean;
+  sonarr_id?:  number;
+  status?:     string;
+  network?:    string;
+}
+
+export interface QualityProfile {
+  id:   number;
+  name: string;
+}
+
+export interface RootFolder {
+  id:   number;
+  path: string;
+}
+
+export interface ServiceProfiles {
+  quality_profiles: QualityProfile[];
+  root_folders:     RootFolder[];
+}
+
+export interface RequestPayload {
+  quality_profile_id: number;
+  root_folder:        string;
+  tmdb_id?:           number;
+  tvdb_id?:           number;
+}
+
+export interface RequestResult {
+  ok:     boolean;
+  id?:    number;
+  error?: string;
+}
+
 export interface SystemStats {
   pilab_name: string;
   cpu_percent: number;

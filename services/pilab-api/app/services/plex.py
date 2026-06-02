@@ -120,11 +120,133 @@ def get_plex():
     return {"now_playing": now_playing, "on_deck": on_deck}
 
 
-def search_plex_item(title: str, year: int | None, item_type: str) -> str | None:
-    """Search Plex for an item and return a deep link if found."""
+def search_plex_item(title: str, year: int | None, item_type: str) -> list:
+    """Search Plex library and return formatted results, enriched with Radarr/Sonarr info."""
     cfg = current_app.config
     if not cfg["PLEX_TOKEN"]:
-        return None
+        return []
+
+    headers = {
+        "Accept":       "application/json",
+        "X-Plex-Token": cfg["PLEX_TOKEN"],
+    }
+    plex_url        = cfg["PLEX_URL"]
+    plex_public_url = f"http://{cfg['HOST']}:32400"
+    token           = cfg["PLEX_TOKEN"]
+
+    try:
+        machine_id = _get_machine_id(plex_url, headers)
+
+        resp = requests.get(
+            f"{plex_url}/search",
+            headers=headers,
+            params={"query": title, "limit": 8},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("MediaContainer", {}).get("Metadata") or []
+
+        # Get Radarr and Sonarr data for enrichment
+        radarr_movies = _get_radarr_movies() if cfg.get("RADARR_URL") else {}
+        sonarr_series = _get_sonarr_series() if cfg.get("SONARR_URL") else {}
+
+        formatted = []
+        for item in results:
+            if item_type and item.get("type") != item_type:
+                continue
+            if year and item.get("year") != year:
+                continue
+
+            thumb_path = item.get("thumb", "")
+            art_path   = item.get("art", "")
+            key        = item.get("key", "")
+            item_title = item.get("title", "")
+            item_year  = item.get("year")
+            item_type_val = item.get("type")
+
+            # Check if in Radarr/Sonarr
+            in_radarr = False
+            radarr_id = None
+            in_sonarr = False
+            sonarr_id = None
+
+            if item_type_val == "movie":
+                for raid, rmovie in radarr_movies.items():
+                    if rmovie["title"].lower() == item_title.lower():
+                        in_radarr = True
+                        radarr_id = raid
+                        break
+            else:
+                for sid, sseries in sonarr_series.items():
+                    if sseries["title"].lower() == item_title.lower():
+                        in_sonarr = True
+                        sonarr_id = sid
+                        break
+
+            entry = {
+                "source":     "plex",
+                "type":       "movie" if item_type_val == "movie" else "show",
+                "title":      item_title,
+                "year":       item_year,
+                "overview":   item.get("summary", ""),
+                "rating":     item.get("rating"),
+                "poster_url": f"{plex_public_url}{thumb_path}?X-Plex-Token={token}" if thumb_path else None,
+                "fanart_url": f"{plex_public_url}{art_path}?X-Plex-Token={token}" if art_path else None,
+                "plex_link":  _plex_link(plex_public_url, machine_id, key) if key else None,
+                "in_radarr":  in_radarr,
+                "radarr_id":  radarr_id,
+                "in_sonarr":  in_sonarr,
+                "sonarr_id":  sonarr_id,
+            }
+
+            if item_type_val == "show":
+                entry["network"] = item.get("network")
+                entry["status"]   = item.get("status")
+
+            formatted.append(entry)
+
+        return formatted
+
+    except Exception as e:
+        print(f"[Plex] Search error: {e}", flush=True)
+
+    return []
+
+
+def _get_radarr_movies() -> dict:
+    """Get all movies from Radarr as {id: {title, year}}."""
+    try:
+        resp = requests.get(
+            f"{current_app.config['RADARR_URL']}/api/v3/movie",
+            headers={"X-Api-Key": current_app.config["RADARR_API_KEY"]},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return {m["id"]: {"title": m["title"], "year": m.get("year")} for m in resp.json()}
+    except Exception as e:
+        print(f"[Plex] Radarr fetch error: {e}", flush=True)
+        return {}
+
+
+def _get_sonarr_series() -> dict:
+    """Get all series from Sonarr as {id: {title, year}}."""
+    try:
+        resp = requests.get(
+            f"{current_app.config['SONARR_URL']}/api/v3/series",
+            headers={"X-Api-Key": current_app.config["SONARR_API_KEY"]},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return {s["id"]: {"title": s["title"], "year": s.get("year")} for s in resp.json()}
+    except Exception as e:
+        print(f"[Plex] Sonarr fetch error: {e}", flush=True)
+        return {}
+
+def search_plex_library(query: str) -> list[dict]:
+    """Search Plex library and return a list of {title, year, plex_link} for matching."""
+    cfg = current_app.config
+    if not cfg.get("PLEX_TOKEN"):
+        return []
 
     headers = {
         "Accept":       "application/json",
@@ -139,20 +261,31 @@ def search_plex_item(title: str, year: int | None, item_type: str) -> str | None
         resp = requests.get(
             f"{plex_url}/search",
             headers=headers,
-            params={"query": title, "limit": 5},
+            params={"query": query, "limit": 20},
             timeout=5,
         )
         resp.raise_for_status()
         results = resp.json().get("MediaContainer", {}).get("Metadata") or []
 
+        output = []
         for item in results:
-            if item.get("type") != item_type:
-                continue
-            if year and item.get("year") != year:
-                continue
-            return _plex_link(plex_public_url, machine_id, item.get("key", ""))
+            key  = item.get("key", "")
+            # For episodes, match against the show title
+            title = (
+                item.get("grandparentTitle") 
+                if item.get("type") == "episode" 
+                else item.get("title", "")
+            )
+            output.append({
+                "title":     title,
+                "year":      item.get("year"),
+                "type":      item.get("type"),
+                "plex_link": _plex_link(plex_public_url, machine_id, key) if key else None,
+                "in_plex": True,
+                "sources": "plex",
+            })
+        return output
 
     except Exception as e:
-        print(f"[Plex] Search error: {e}", flush=True)
-
-    return None
+        print(f"[Plex] Library search error: {e}", flush=True)
+        return []
