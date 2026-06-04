@@ -195,6 +195,7 @@
     <MediaDetailModal
       result={selected}
       onclose={() => (selected = null)}
+      ondeleted={() => (selected = null)}
     />
   {/if}
 {/if}
